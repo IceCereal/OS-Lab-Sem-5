@@ -1,5 +1,4 @@
-/*
-	Lab 2: August-5
+Lab 2: August-5
 
 	Question:
 
@@ -18,10 +17,17 @@
 	diff prog.c newfile.c
 	rm prog.c
 	gcc newfile.c -o newfile.out
-*/
 
 To compile:
 ```gcc Prgm-1.c -o prgm-1-out```
 
 To execute:
 ```./prgm-1-out test-commands```
+
+Note: There should be a `\n`(newline, not literally) at the end of the file:
+	
+	ls -al
+	ping
+	whoami
+	*\n*
+for the program to work
