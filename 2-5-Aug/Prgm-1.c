@@ -50,43 +50,82 @@ int main(int argc, char *argv[]){
 		printf("\nFile Not Found!\nExiting\n");
 		return -1;
 	}
+	
+	// Count the number of commands in the file
+	int count_lines = 0;
+	char ch;
+	const char EOL = '\n';
 
-	char line[200];
-
-	while ( fgets(line, 1000, file_ptr) != NULL ){
-		char *args[20];
-		char *token;
-		char *command;
-		int count = 0;
-
-		printf("%s", line);
-
-		token = strtok(line, " ");
-
-		while (token != NULL){
-			printf("%s ", token);
-			if (count == 0){
-				command = token;
-				args[count] = token;
-			}
-			else
-				args[count] = token;
-			count += 1;
-			token = strtok(NULL, " ");
+	ch = getc(file_ptr);
+	while (ch != EOF)
+	{
+		if (ch == EOL)
+		{
+			count_lines = count_lines + 1;
 		}
-		args[count] = NULL;
+		ch = getc(file_ptr);
+	}
+	fseek(file_ptr, 0, SEEK_SET);
 
-		for (int i = 0; i < count; ++i)
-			printf("%s ", args[count]);
+	// Allocate memory for the first read
+	char **buffer = (char **)malloc(count_lines*sizeof(char *));
+	for(int i = 0; i < count_lines; i++){
+		buffer[i] = (char *)malloc(100*sizeof(char));
+	}
 
-		pid_t child_pid = fork();
+	// Allocate memory for the tokens
+	char ***token = (char ***)malloc(count_lines*sizeof(char **));
+	for(int i = 0; i < count_lines; i++){
+		token[i] = (char **)malloc(20*sizeof(char *));
+		for(int j = 0; j < 20; j++){
+			token[i][j] = (char *)malloc(20*sizeof(char));
+		}
+	}
 
-		if (child_pid == 0)
-			execvp(command, args);
-		else
-			wait(NULL);
+	// Read the file
+	int i = 0;
+	ch = getc(file_ptr);
+	while(ch != EOF){
+		if(i != 0){
+			ch = fgetc(file_ptr);
+		}
+
+		// Save the line
+		int p = 0;
+		while (ch != EOL)
+		{
+			buffer[i][p++] = ch;
+			ch = fgetc(file_ptr);
+		}
+
+		// Tokenize the line
+		char* tok = strtok(buffer[i], " ");
+		int pos = 0;
+		while (tok != NULL) {
+			token[i][pos++] = tok;
+			tok = strtok(NULL, " ");
+		}
+		token[i][pos] = NULL;
+		i++;
+
+		ch = fgetc(file_ptr);
+
+		// Break if end of file is reached
+		if(ch == EOF){
+			break;
+		}
+		else{
+			fseek(file_ptr, -1, SEEK_CUR);
+		}
 	}
 
 	fclose(file_ptr);
+
+	for (int i = 0; i < count_lines; ++i){
+		for (int j = 0; j < 20; ++j)
+			printf("%s ", token[i][j]);
+		printf("\n");
+	}
+
 	return 0;
 }
