@@ -3,7 +3,7 @@
 
 	Question:
 
-	A file contains a  list of commands, one per each line, with variable number of arguments.
+	A file contains a list of commands, one per each line, with variable number of arguments.
 	Write a C program to read each command and its arguments and execute them.
 	The program terminates when all the commands are completed.
 
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]){
 	// argv[1] - FILENAME
 
 	if (argc != 2){
-		printf("\nOnly two arguments can be taken! ./a.out FILENAME.\nExiting\n");
+		printf("Only two arguments can be taken! Usage: ./a.out Path_To_File\nExiting\n");
 		return -1;
 	}
 
