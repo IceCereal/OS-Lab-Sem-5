@@ -1,4 +1,5 @@
 whoami
+ping -c 5 8.8.8.8
 ls
 ls ../
 echo How are you Today

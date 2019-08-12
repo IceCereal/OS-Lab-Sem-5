@@ -132,8 +132,10 @@ int main(int argc, char *argv[]){
 	for (int i = 0; i < count_lines; ++i){
 		pid_t child_pid = fork();
 
-		if (child_pid == 0)
+		if (child_pid == 0){
 			execvp(token[i][0], token[i]);
+			return 0;
+		}
 		else
 			wait(NULL);
 	}
