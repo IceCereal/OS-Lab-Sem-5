@@ -20,6 +20,10 @@
 	gcc newfile.c -o newfile.out
 */
 /*
+	Reading the file part:
+		credit: https://gist.github.com/Rochan-A/d47c3f7abd3f90774f1d06a1ec1903b3
+*/
+/*
 	Okay, so here's the logic. We start from main. We read the file.
 	We create a child process. We execute the child process via execvp().
 	Parent is to now wait till child is done. Once the child is done, it
