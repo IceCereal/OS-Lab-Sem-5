@@ -105,7 +105,10 @@ int main(int argc, char *argv[]){
 			token[i][pos++] = tok;
 			tok = strtok(NULL, " ");
 		}
-		token[i][pos] = NULL;
+		while (pos != 20){
+			token[i][pos++] = NULL;
+		}
+		
 		i++;
 
 		ch = fgetc(file_ptr);
@@ -121,11 +124,18 @@ int main(int argc, char *argv[]){
 
 	fclose(file_ptr);
 
+	// Begin Executing
 	for (int i = 0; i < count_lines; ++i){
-		for (int j = 0; j < 20; ++j)
-			printf("%s ", token[i][j]);
-		printf("\n");
+		pid_t child_pid = fork();
+
+		if (child_pid == 0)
+			execvp(token[i][0], token[i]);
+		else
+			wait(NULL);
 	}
+
+	free(token);
+	free(buffer);
 
 	return 0;
 }
