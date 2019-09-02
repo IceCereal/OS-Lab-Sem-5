@@ -17,6 +17,38 @@
 #include <sys/wait.h>
 #include <string.h>
 
+void execute_process(char *readBuffer){
+	/* Util function to execute a process */
+
+	char readBuffer_Copy[strlen(readBuffer)];
+	strcpy(readBuffer_Copy, readBuffer);
+
+	/* 1. Count number of words required as well as max word length */
+	int wordCount = 0;
+
+	char *tempWord = strtok(readBuffer, " \n");
+
+	while (tempWord != NULL){
+		++wordCount;
+		tempWord = strtok(NULL, " \n");
+	}
+
+	// Make Arguments
+	char *args[wordCount + 1];
+
+	char *word = strtok(readBuffer_Copy, " \n");
+
+	int i = 0;
+	// Copy tokens to args
+	while (word != NULL){
+		args[i++] = word;
+		word = strtok(NULL, " \n");
+	}
+	args[i] = NULL;
+
+	return;
+}
+
 int main(int argc, char *argv[]){
 	printf("Starting Lab3...\n");
 	printf("Question:\n\n\tWrite a program that will read a command from a user and execute them. The program should exit ");
@@ -84,6 +116,11 @@ int main(int argc, char *argv[]){
 					strcpy(send_acknowledge, "fail");
 					loopProcess = 0;
 				}
+			}
+
+			// strncmp evaluates to 0 if it's true.
+			if (strncmp(send_acknowledge, "fail", 4) != 0){
+				execute_process(readBuffer);
 			}
 
 			// Send Acknowledge
