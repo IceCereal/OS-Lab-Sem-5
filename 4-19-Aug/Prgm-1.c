@@ -276,9 +276,24 @@ int main(int argc, char *argv[]){
 
 			// strncmp evaluates to 0 if it's true.
 			if (strncmp(send_acknowledge, "quit", 4) != 0){
-				if (exec_process(readBuffer) == -1){
-					perror("Child Process:\texecute_process returned -1.\nReturning -1\n");
-					return -1;
+				// Begin custom checks
+				if (strncmp(readBuffer, "HISTORY BRIEF", strlen("HISTORY BRIEF")) == 0){
+
+					disp_history(0);
+	
+				} else if (strncmp(readBuffer, "HISTORY FULL", strlen("HISTORY FULL")) == 0){
+
+					disp_history(1);
+
+				} else if (strncmp(readBuffer, "EXEC", strlen("EXEC")) == 0){
+
+					exec_command(readBuffer);
+
+				} else{
+					if (exec_process(readBuffer) == -1){
+						perror("Child Process:\texecute_process returned -1.\nReturning -1\n");
+						return -1;
+					}
 				}
 			}
 
