@@ -1,5 +1,4 @@
-ls
-ls
-ls
-ls
-ssh --help
+cat test-commands
+ss -s
+ip a
+wc -l test-commands test-commands-1

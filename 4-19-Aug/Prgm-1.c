@@ -41,6 +41,7 @@ int exec_file(char *fileName){
 
 	if (file_ptr == NULL){
 		printf("\nFile Not Found!\nExiting\n");
+		perror("fopen - bad file");
 		return -1;
 	}
 	
@@ -50,17 +51,21 @@ int exec_file(char *fileName){
 	const char EOL = '\n';
 
 	ch = getc(file_ptr);
-	while (ch != EOF){
+	while (ch != EOF)
+	{
 		if (ch == EOL)
+		{
 			count_lines = count_lines + 1;
+		}
 		ch = getc(file_ptr);
 	}
 	fseek(file_ptr, 0, SEEK_SET);
 
 	// Allocate memory for the first read
 	char **buffer = (char **)malloc(count_lines*sizeof(char *));
-	for(int i = 0; i < count_lines; i++)
+	for(int i = 0; i < count_lines; i++){
 		buffer[i] = (char *)malloc(100*sizeof(char));
+	}
 
 	// Allocate memory for the tokens
 	char ***token = (char ***)malloc(count_lines*sizeof(char **));
@@ -75,12 +80,14 @@ int exec_file(char *fileName){
 	int i = 0;
 	ch = getc(file_ptr);
 	while(ch != EOF){
-		if(i != 0)
+		if(i != 0){
 			ch = fgetc(file_ptr);
+		}
 
 		// Save the line
 		int p = 0;
-		while (ch != EOL){
+		while (ch != EOL)
+		{
 			buffer[i][p++] = ch;
 			ch = fgetc(file_ptr);
 		}
@@ -101,14 +108,13 @@ int exec_file(char *fileName){
 		ch = fgetc(file_ptr);
 
 		// Break if end of file is reached
-		if(ch == EOF)
+		if(ch == EOF){
 			break;
-
-		else
+		}
+		else{
 			fseek(file_ptr, -1, SEEK_CUR);
+		}
 	}
-
-	fclose(file_ptr);
 
 	// Begin Executing
 	for (int i = 0; i < count_lines; ++i){
@@ -117,13 +123,9 @@ int exec_file(char *fileName){
 		if (child_pid == 0){
 			execvp(token[i][0], token[i]);
 			return 0;
-		}
-		else
+		} else
 			wait(NULL);
 	}
-
-	free(token);
-	free(buffer);
 
 	return 0;
 }
@@ -132,11 +134,25 @@ int exec_file(char *fileName){
 int main(int argc, char *argv[]){
 	// CLI
 	// argv[0] ./a.out
-	// argv[1-n] filename.txt
+	// argv[1-n] filename[1-n].txt
 
+	printf("Starting Lab4...\n");
+	printf("Question:\n\tWrite a program to execute a set of files given through CLI. Then, the ");
+	printf("program enterse a interactive mode.\n\n");
+
+	if (argc < 2){
+		printf("Error:\tMain\nMore than 1 argumnet is required. ./a.out FILENAME[0] ... FILENAME[n-1]\nExiting:\t-1\n");
+		return -1;
+	}
+
+	/* Step 1 - Read each file iteratively */
 	int i;
 	for (i = 1; i < argc; ++i){
-		exec_file(argv[i]);
+		printf("Reading File:\t%s\n", argv[i]);
+		if (exec_file(argv[i]) == -1){
+			printf("Error:\tMain\nexec_file:\treturned an error\nExiting:\t-1");
+			return -1;
+		}
 	}
 
 	return 0;
