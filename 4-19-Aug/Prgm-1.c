@@ -182,6 +182,63 @@ int exec_process(char *readBuffer){
 	return 0;
 }
 
+int disp_history(int mode){
+	/*
+		Mode:
+			0 - HISTORY BRIEF
+			1 - HISTORY FULL
+	*/ 
+
+	FILE *file_ptr;
+	file_ptr = fopen(".prgm-1-history", "r");
+
+	if (file_ptr == NULL){
+		printf("\nError:\tdisp_history\nFile:\t.prgm-1-history not found\nReturning -1");
+		perror("Fopen - Could not open file");
+		return -1;
+	}
+
+	char *line = NULL;
+	size_t len = 0;
+	ssize_t nread;
+
+	int lineCount = 0;
+
+	char **lines = (char **)malloc(20 * sizeof(char *));
+	for (int i = 0; i < 20; ++i)
+		lines[i] = (char *)malloc(40 * sizeof(char));
+
+	while ((nread = getline(&line, &len, file_ptr)) != -1) {
+		if (nread >= 40){
+			for (int i = 0; i < 20; ++i)
+				free(lines[i]);
+			free(lines);
+			printf("\nError:\tDisp_History\nLine has more than 40 characters while reading .prgm-1-history\nReturning -1\n");
+			return -1;
+		}
+		strcpy(lines[lineCount++], line);
+	}
+
+	if (mode == 0){
+
+	} else if (mode == 1){
+
+	}
+
+
+
+	return -1;
+
+}
+
+int clean_up(){
+	if (remove(".prgm-1-history") != 0){
+		printf("\nError:\tclean_up\nUnable to remove .prgm-1-history\nReturning:\t-1");
+		return -1;
+	}
+
+	return 0;
+}
 
 int main(int argc, char *argv[]){
 	// CLI
@@ -190,13 +247,13 @@ int main(int argc, char *argv[]){
 
 	printf("Starting Lab4...\n");
 	printf("Question:\n\tWrite a program to execute a set of files given through CLI. Then, the ");
-	printf("program enterse a interactive mode.\n\n");
+	printf("program enters a interactive mode.\n\n");
 
 	if (argc < 2){
 		printf("Error:\tMain\nMore than 1 argumnet is required. ./a.out FILENAME[0] ... FILENAME[n-1]\nExiting:\t-1\n");
 		return -1;
 	}
-
+ 
 	/* Step 1 - Read each file iteratively */
 	for (int i = 1; i < argc; ++i){
 		printf("Reading File:\t%s\n", argv[i]);
@@ -236,6 +293,10 @@ int main(int argc, char *argv[]){
 		perror("Fork creation failed!\nExiting\n");
 		return -1;
 	}
+
+	FILE *history_file_ptr;
+	history_file_ptr = fopen(".prgm-1-history", "w");
+	fclose(history_file_ptr);
 
 	// Begin Loop
 	while (loopProcess){
@@ -287,7 +348,7 @@ int main(int argc, char *argv[]){
 
 				} else if (strncmp(readBuffer, "EXEC", strlen("EXEC")) == 0){
 
-					exec_command(readBuffer);
+					// exec_commad(readBuffer);
 
 				} else{
 					if (exec_process(readBuffer) == -1){
@@ -314,6 +375,7 @@ int main(int argc, char *argv[]){
 			if (write(signal_sendPipe[1], writeBuffer, sizeof(writeBuffer)) == -1){
 				perror("Parent Process:\tWriting (writeBuffer) to Pipeline in Parent failed!\nBreaking\n");
 				kill(pid, SIGKILL);
+				clean_up();
 				return -1;
 			}
 
@@ -324,6 +386,7 @@ int main(int argc, char *argv[]){
 			if (read(signal_ackPipe[0], acknowledge, sizeof(acknowledge)) == -1){
 				perror("Parent Process:\tReading (acknowledge) from Pipeline in Parent failed!\nBreaking\n");
 				kill(pid, SIGKILL);
+				clean_up();
 				return -1;
 			}
 
@@ -336,6 +399,6 @@ int main(int argc, char *argv[]){
 
 	}
 
-
+	clean_up();
 	return 0;
 }
