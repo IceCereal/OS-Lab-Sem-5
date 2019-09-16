@@ -226,7 +226,7 @@ int disp_history(int mode){
 	fclose(file_ptr);
 
 	if (mode == 0){
-
+		// HISTORY BRIEF
 		for (int i = 0; i < lineCount + 1; ++i){
 			for (int j = 0; j < 40; ++j){
 				if (lines[i][j] == ' ')
@@ -240,7 +240,12 @@ int disp_history(int mode){
 
 
 	} else if (mode == 1){
-		//
+		// HISTORY FULL
+		for (int i = 0; i < lineCount + 1; ++i){
+			if (strncmp(lines[i], "\n", strlen("\n")) == 0)
+				break;
+			printf("%s", lines[i]);
+		}
 	}
 
 	for (int i = 0; i < 20; ++i)
