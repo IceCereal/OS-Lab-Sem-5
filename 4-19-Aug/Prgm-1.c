@@ -219,13 +219,29 @@ int disp_history(int mode){
 		strcpy(lines[lineCount++], line);
 	}
 
+	// printf("\nLine Count\t%d:", lineCount);
+
 	if (mode == 0){
+
+		for (int i = 0; i < lineCount; ++i){
+			printf("\n");
+			for (int j = 0; j < 40; ++j){
+				if (lines[i][j] == ' ')
+					break;
+				printf("%c", lines[i][j]);
+			}
+		}
+
 
 	} else if (mode == 1){
 
+		printf("Test");
+
 	}
 
-
+	for (int i = 0; i < 20; ++i)
+		free(lines[i]);
+	free(lines);
 
 	return -1;
 
@@ -351,6 +367,13 @@ int main(int argc, char *argv[]){
 					// exec_commad(readBuffer);
 
 				} else{
+					readBuffer[strlen(readBuffer)] = '\0';
+
+					FILE *history_file_ptr;
+					history_file_ptr = fopen(".prgm-1-history", "a");
+					fprintf(history_file_ptr, "%s", readBuffer);
+					fclose(history_file_ptr);
+
 					if (exec_process(readBuffer) == -1){
 						perror("Child Process:\texecute_process returned -1.\nReturning -1\n");
 						return -1;
