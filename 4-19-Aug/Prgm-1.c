@@ -190,10 +190,10 @@ int disp_history(int mode){
 	*/ 
 
 	FILE *file_ptr;
-	file_ptr = fopen(".prgm-1-history", "r");
+	file_ptr = fopen("~prgm-1-history.TEMP", "r");
 
 	if (file_ptr == NULL){
-		printf("\nError:\tdisp_history\nFile:\t.prgm-1-history not found\nReturning -1");
+		printf("\nError:\tdisp_history\nFile:\t~prgm-1-history.TEMP not found\nReturning -1");
 		perror("Fopen - Could not open file");
 		return -1;
 	}
@@ -208,35 +208,39 @@ int disp_history(int mode){
 	for (int i = 0; i < 20; ++i)
 		lines[i] = (char *)malloc(40 * sizeof(char));
 
+	line = (char *)malloc(40 * sizeof(char));
+
 	while ((nread = getline(&line, &len, file_ptr)) != -1) {
 		if (nread >= 40){
 			for (int i = 0; i < 20; ++i)
 				free(lines[i]);
 			free(lines);
-			printf("\nError:\tDisp_History\nLine has more than 40 characters while reading .prgm-1-history\nReturning -1\n");
+			printf("\nError:\tDisp_History\nLine has more than 40 characters while reading ~prgm-1-history.TEMP\nReturning -1\n");
 			return -1;
 		}
-		strcpy(lines[lineCount++], line);
+		strncpy(lines[lineCount++], line, nread);
+
 	}
 
-	// printf("\nLine Count\t%d:", lineCount);
+	free(line);
+	fclose(file_ptr);
 
 	if (mode == 0){
 
-		for (int i = 0; i < lineCount; ++i){
-			printf("\n");
+		for (int i = 0; i < lineCount + 1; ++i){
 			for (int j = 0; j < 40; ++j){
 				if (lines[i][j] == ' ')
 					break;
+				if (lines[i][j] == '\n')
+					break;
 				printf("%c", lines[i][j]);
 			}
+			printf("\n");
 		}
 
 
 	} else if (mode == 1){
-
-		printf("Test");
-
+		//
 	}
 
 	for (int i = 0; i < 20; ++i)
@@ -248,10 +252,7 @@ int disp_history(int mode){
 }
 
 int clean_up(){
-	if (remove(".prgm-1-history") != 0){
-		printf("\nError:\tclean_up\nUnable to remove .prgm-1-history\nReturning:\t-1");
-		return -1;
-	}
+	remove("~prgm-1-history.TEMP");
 
 	return 0;
 }
@@ -311,7 +312,7 @@ int main(int argc, char *argv[]){
 	}
 
 	FILE *history_file_ptr;
-	history_file_ptr = fopen(".prgm-1-history", "w");
+	history_file_ptr = fopen("~prgm-1-history.TEMP", "w");
 	fclose(history_file_ptr);
 
 	// Begin Loop
@@ -370,7 +371,7 @@ int main(int argc, char *argv[]){
 					readBuffer[strlen(readBuffer)] = '\0';
 
 					FILE *history_file_ptr;
-					history_file_ptr = fopen(".prgm-1-history", "a");
+					history_file_ptr = fopen("~prgm-1-history.TEMP", "a");
 					fprintf(history_file_ptr, "%s", readBuffer);
 					fclose(history_file_ptr);
 
