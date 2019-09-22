@@ -59,3 +59,53 @@ char *disp_dir(){
 
 	return cur_Dir;
 }
+
+char *icsh_getline(){
+	char *line = NULL;
+	size_t buffersize = 0;
+	getline(&line, &buffersize, stdin);
+	return line;
+}
+
+char **icsh_parse_line(char *line){
+	int totalArgs = 0;
+	int max_argLen = 0;
+
+	char *command = (char *)malloc(strlen(line) * sizeof(char));
+	char *lineTemp = (char *)malloc(strlen(line) * sizeof(char));
+	strcpy(command, line);
+	strcpy(lineTemp, line);
+
+	// Initial loop for figuring out the number of arguments and
+	// max_length(argument)
+	char* tok = strtok(lineTemp, " \n");
+	while(tok != NULL){
+		totalArgs++;
+
+		int tempLen = strlen(tok);
+
+		if (tempLen > max_argLen)
+			max_argLen = tempLen;
+
+		tok = strtok(NULL, " \n");
+	}
+
+	// Allocate space for the tokens
+	char **token = (char **)malloc((totalArgs + 1) * sizeof(char *));
+	for (int i = 0; i < totalArgs + 1; ++i)
+		token[i] = (char *)malloc((max_argLen) * sizeof(char));
+
+	int argv_counter = 0;
+	tok = strtok(command, " \n");
+	while (tok != NULL){
+		strcpy(token[argv_counter++], tok);
+		tok = strtok(NULL, " \n");
+	}
+
+	token[argv_counter] = NULL;
+
+	free(command);
+	free(lineTemp);
+
+	return token;
+}
