@@ -94,9 +94,10 @@ This is the primitive "executor". It has a check to see if anything built-in
 matches args[0] and accordingly executes the command.
 
 input: **args
+input: *line
 returns: statusFlag (for main loop)
 */
-int icsh_execute_input(char **);
+int icsh_execute_input(char **, char *);
 
 /*
 icsh_execute_command
@@ -106,9 +107,10 @@ executable command.
 
 
 input: **args
+input: *line
 returns: 1 (for the statusFlag (for main loop))
 */
-int icsh_execute_command(char **);
+int icsh_execute_command(char **, char *);
 
 
-#endif ICSH_H_
+#endif

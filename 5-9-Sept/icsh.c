@@ -5,10 +5,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/utsname.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <string.h>
 #include <sys/wait.h>
-#include "prgm1.h"
+
+#include "icsh.h"
 
 char home[BUFSIZE];
 
@@ -26,17 +28,34 @@ int main(int argc, char *argv[]){
 	char **args;
 	int statusFlag = 1;
 
+	mkdir(".local", 0770);
+	mkdir(".local/pid/", 0770);
+	mkdir(".local/hist/", 0770);
+
+	FILE *file_ptr_pid_all = fopen(".local/pid/all", "w");
+	FILE *file_ptr_pid_cur = fopen(".local/pid/current", "w");
+	FILE *file_ptr_hist = fopen(".local/hist/history", "w");
+
+	fclose(file_ptr_pid_all);
+	fclose(file_ptr_pid_cur);
+	fclose(file_ptr_hist);
+	
+
 	do{
 		printf("%s@%s:~%s/ ", username, nodename, disp_dir());
 
 		inputLine = icsh_getline();
 		args = icsh_parse_line(inputLine);
-		statusFlag = icsh_execute_input(args);
+		statusFlag = icsh_execute_input(args, inputLine);
 
 	} while(statusFlag);
 
 	free(inputLine);
 	free(args);
+
+	rmdir(".local/hist/");
+	rmdir(".local/pid/");
+	rmdir(".local/");
 
 	return 0;
 }
@@ -112,15 +131,18 @@ char **icsh_parse_line(char *line){
 
 int icsh_cd(char **);
 int icsh_exit(char **);
+int icsh_pid(char **);
 
 char *icsh_builtin_str[] = {
 	"cd",
-	"exit"
+	"exit",
+	"pid"
 };
 
 int (*icsh_builtin_func[]) (char **) = {
 	&icsh_cd,
-	&icsh_exit
+	&icsh_exit,
+	&icsh_pid
 };
 
 int icsh_num_builtin(){
@@ -142,7 +164,7 @@ int icsh_exit(char **args){
 	return 0;
 }
 
-int icsh_execute_command(char **args){
+int icsh_execute_command(char **args, char *line){
 	pid_t pid = fork();
 
 	if (pid == -1){
@@ -158,7 +180,7 @@ int icsh_execute_command(char **args){
 
 }
 
-int icsh_execute_input(char **args){
+int icsh_execute_input(char **args, char *line){
 	if (args[0] == NULL)
 		return 1;
 
@@ -169,5 +191,15 @@ int icsh_execute_input(char **args){
 			return (*icsh_builtin_func[i])(args);
 	}
 
-	return icsh_execute_command(args);
+	return icsh_execute_command(args, line);
+}
+
+int icsh_pid(char **args){
+	if (args[1] == NULL){
+		printf("%d\n", getpid());
+	} else if (strncmp(args[1], "current", strlen("current")) == 0){
+
+	}
+
+	return 1;
 }
