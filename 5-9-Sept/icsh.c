@@ -109,3 +109,35 @@ char **icsh_parse_line(char *line){
 
 	return token;
 }
+
+int icsh_cd(char **);
+int icsh_exit(char **);
+
+char *icsh_builtin_str[] = {
+	"cd",
+	"exit"
+};
+
+int (*icsh_builtin_func[]) (char **) = {
+	&icsh_cd,
+	&icsh_exit
+};
+
+int icsh_num_builtin(){
+	return (sizeof(icsh_builtin_str) / sizeof(char *));
+}
+
+int icsh_cd(char **args){
+	if (args[1] == NULL){
+		chdir(home);
+	} else {
+		if (chdir(args[1]) != 0)
+			printf("Couldn't cd");
+	}
+
+	return 1;
+}
+
+int icsh_exit(char **args){
+	return 0;
+}
