@@ -40,3 +40,22 @@ int main(int argc, char *argv[]){
 
 	return 0;
 }
+
+char *disp_dir(){
+	char cwd[BUFSIZE];
+	getcwd(cwd, BUFSIZE);
+
+	int dir_Diff = strlen(cwd) - strlen(home);
+
+	char *cur_Dir;
+	cur_Dir = &home[strlen(home)];
+
+	if (dir_Diff > 0){
+		cur_Dir = &cwd[strlen(home)];
+	} else if (dir_Diff < 0){
+		//dir = &home[strlen(home)+dir_Diff];
+		// TODO: FINISH
+	}
+
+	return cur_Dir;
+}
