@@ -141,3 +141,33 @@ int icsh_cd(char **args){
 int icsh_exit(char **args){
 	return 0;
 }
+
+int icsh_execute_command(char **args){
+	pid_t pid = fork();
+
+	if (pid == -1){
+		printf("ERROR!");
+	} else if (pid == 0){
+		if (execvp(args[0], args) == -1)
+			printf("ERROR");
+	} else{
+		wait(NULL);
+	}
+
+	return 1;
+
+}
+
+int icsh_execute_input(char **args){
+	if (args[0] == NULL)
+		return 1;
+
+	int num_builtin = icsh_num_builtin();
+
+	for (int i = 0; i < num_builtin; ++i){
+		if (strcmp(args[0], icsh_builtin_str[i]) == 0)
+			return (*icsh_builtin_func[i])(args);
+	}
+
+	return icsh_execute_command(args);
+}
