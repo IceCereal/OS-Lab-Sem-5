@@ -12,7 +12,8 @@
 
 #include "icsh.h"
 
-char home[BUFSIZE];
+char home[BUFSIZE], file_pid_all[BUFSIZE], file_pid_current[BUFSIZE],
+	file_history[BUFSIZE];
 
 int main(int argc, char *argv[]){
 	char username[BUFSIZE];
@@ -23,6 +24,18 @@ int main(int argc, char *argv[]){
 	char *nodename = uname_data.nodename;
 
 	getcwd(home, BUFSIZE);
+
+	strcpy(file_pid_all, "");
+	strcpy(file_pid_current, "");
+	strcpy(file_history, "");
+
+	strcat(file_pid_all, home);
+	strcat(file_pid_current, home);
+	strcat(file_history, home);
+
+	strcat(file_pid_all, "/._icsh_pid_all");
+	strcat(file_pid_current, "/._icsh_pid_current");
+	strcat(file_history, "/._icsh_history");
 
 	char *inputLine;
 	char **args;
@@ -78,7 +91,19 @@ char *icsh_getline(){
 	char *line = NULL;
 	size_t buffersize = 0;
 	getline(&line, &buffersize, stdin);
+
+	icsh_log_history(line);
+
 	return line;
+}
+
+int icsh_log_history(char *line){
+	FILE *file_ptr_hist = fopen(file_history, "a");
+
+	fprintf(file_ptr_hist, line, strlen(line));
+
+	fclose(file_ptr_hist);
+	return 1;
 }
 
 char **icsh_parse_line(char *line){
@@ -218,7 +243,10 @@ int icsh_clean_up(){
 	remove(pid_all);
 	remove(history);
 
-	printf("%s\n%s\n%s\n", pid_all, pid_current, history);
+int icsh_clean_up(){
+	remove(file_pid_all);
+	remove(file_pid_current);
+	remove(file_history);
 
 	return 1;
 }
