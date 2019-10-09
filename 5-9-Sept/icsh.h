@@ -112,5 +112,16 @@ returns: 1 (for the statusFlag (for main loop))
 */
 int icsh_execute_command(char **, char *);
 
+/*
+icsh_clean_up
+
+This is to remove the locally created files:
+._icsh_pid_all
+._icsh_pid_current
+._icsh_history
+
+returns: 1 on success
+*/
+int icsh_clean_up();
 
 #endif

@@ -28,18 +28,13 @@ int main(int argc, char *argv[]){
 	char **args;
 	int statusFlag = 1;
 
-	mkdir(".local", 0770);
-	mkdir(".local/pid/", 0770);
-	mkdir(".local/hist/", 0770);
-
-	FILE *file_ptr_pid_all = fopen(".local/pid/all", "w");
-	FILE *file_ptr_pid_cur = fopen(".local/pid/current", "w");
-	FILE *file_ptr_hist = fopen(".local/hist/history", "w");
+	FILE *file_ptr_pid_all = fopen("._icsh_pid_all", "w");
+	FILE *file_ptr_pid_cur = fopen("._icsh_pid_current", "w");
+	FILE *file_ptr_hist = fopen("._icsh_history", "w");
 
 	fclose(file_ptr_pid_all);
 	fclose(file_ptr_pid_cur);
 	fclose(file_ptr_hist);
-	
 
 	do{
 		printf("%s@%s:~%s/ ", username, nodename, disp_dir());
@@ -53,9 +48,9 @@ int main(int argc, char *argv[]){
 	free(inputLine);
 	free(args);
 
-	rmdir(".local/hist/");
-	rmdir(".local/pid/");
-	rmdir(".local/");
+	printf("Cleaning up...\n");
+
+	icsh_clean_up();
 
 	return 0;
 }
@@ -200,6 +195,30 @@ int icsh_pid(char **args){
 	} else if (strncmp(args[1], "current", strlen("current")) == 0){
 
 	}
+
+	return 1;
+}
+
+int icsh_clean_up(){
+	char pid_current[1024], pid_all[1024], history[1024];
+
+	strcpy(pid_current, "");
+	strcpy(pid_all, "");
+	strcpy(history, "");
+
+	strcat(pid_current, home);
+	strcat(pid_all, home);
+	strcat(history, home);
+
+	strcat(pid_current, "/._icsh_pid_current");
+	strcat(pid_all, "/._icsh_pid_all");
+	strcat(history, "/._icsh_history");
+
+	remove(pid_current);
+	remove(pid_all);
+	remove(history);
+
+	printf("%s\n%s\n%s\n", pid_all, pid_current, history);
 
 	return 1;
 }
