@@ -224,24 +224,33 @@ int icsh_pid(char **args){
 	return 1;
 }
 
-int icsh_clean_up(){
-	char pid_current[1024], pid_all[1024], history[1024];
+int icsh_hist(char **args){
+	if (args[1] == NULL){
+		/* History - All */
+		FILE *file_ptr_hist = fopen(file_history, "r");
 
-	strcpy(pid_current, "");
-	strcpy(pid_all, "");
-	strcpy(history, "");
+		char *buffer;
+		size_t buffer_size;
+		ssize_t line_size;
 
-	strcat(pid_current, home);
-	strcat(pid_all, home);
-	strcat(history, home);
+		int line_counter = 0;
 
-	strcat(pid_current, "/._icsh_pid_current");
-	strcat(pid_all, "/._icsh_pid_all");
-	strcat(history, "/._icsh_history");
+		printf("  History\n");
 
-	remove(pid_current);
-	remove(pid_all);
-	remove(history);
+		line_size = getline(&buffer, &buffer_size, file_ptr_hist);
+
+		while (line_size >= 0){
+			line_counter++;
+			printf("  %d  %s", line_counter, buffer);
+			line_size = getline(&buffer, &buffer_size,
+				file_ptr_hist);
+		}
+	} else{
+		printf("hist: hist does not take any additional arguments\n");
+	}
+
+	return 1;
+}
 
 int icsh_clean_up(){
 	remove(file_pid_all);
