@@ -156,13 +156,17 @@ int icsh_pid(char **);
 char *icsh_builtin_str[] = {
 	"cd",
 	"exit",
-	"pid"
+	"pid",
+	"hist",
+	"histn",
 };
 
 int (*icsh_builtin_func[]) (char **) = {
 	&icsh_cd,
 	&icsh_exit,
-	&icsh_pid
+	&icsh_pid,
+	&icsh_hist,
+	&icsh_histn
 };
 
 int icsh_num_builtin(){
@@ -174,7 +178,7 @@ int icsh_cd(char **args){
 		chdir(home);
 	} else {
 		if (chdir(args[1]) != 0)
-			printf("Couldn't cd");
+			printf("Couldn't cd\n");
 	}
 
 	return 1;
@@ -188,10 +192,10 @@ int icsh_execute_command(char **args, char *line){
 	pid_t pid = fork();
 
 	if (pid == -1){
-		printf("ERROR!");
+		printf("ERROR!\n");
 	} else if (pid == 0){
 		if (execvp(args[0], args) == -1)
-			printf("ERROR");
+			printf("ERROR\n");
 	} else{
 		wait(NULL);
 	}
@@ -218,7 +222,7 @@ int icsh_pid(char **args){
 	if (args[1] == NULL){
 		printf("%d\n", getpid());
 	} else if (strncmp(args[1], "current", strlen("current")) == 0){
-
+		// FILE *
 	}
 
 	return 1;
@@ -245,8 +249,42 @@ int icsh_hist(char **args){
 			line_size = getline(&buffer, &buffer_size,
 				file_ptr_hist);
 		}
+
+		fclose(file_ptr_hist);
 	} else{
 		printf("hist: hist does not take any additional arguments\n");
+	}
+
+	return 1;
+}
+
+int icsh_histn(char **args){
+	int line_limit = atoi(args[1]);
+
+	if (args[2] == NULL){
+		/* History - n */
+		FILE *file_ptr_hist = fopen(file_history, "r");
+
+		char *buffer;
+		size_t buffer_size;
+		ssize_t line_size;
+
+		int line_counter = 0;
+
+		printf("  History\n");
+
+		line_size = getline(&buffer, &buffer_size, file_ptr_hist);
+
+		while (line_size >= 0){
+			line_counter++;
+			printf("  %d  %s", line_counter, buffer);
+			line_size = getline(&buffer, &buffer_size,
+				file_ptr_hist);
+			if (line_counter == line_limit)
+				break;
+		}
+
+		fclose(file_ptr_hist);
 	}
 
 	return 1;
