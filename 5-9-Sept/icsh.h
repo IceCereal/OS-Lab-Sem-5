@@ -78,6 +78,16 @@ returns: *line
 char *icsh_getline();
 
 /*
+icsh_log_history
+
+This stores the entered command to .icsh_history
+
+params: line
+returns: 1 (on success)
+*/
+int icsh_log_history(char *);
+
+/*
 icsh_parse_line
 
 This parses the line into arguments (like char *argv[])
@@ -110,7 +120,7 @@ input: **args
 input: *line
 returns: 1 (for the statusFlag (for main loop))
 */
-int icsh_execute_command(char **, char *);
+int icsh_execute_command(char **);
 
 /*
 icsh_clean_up

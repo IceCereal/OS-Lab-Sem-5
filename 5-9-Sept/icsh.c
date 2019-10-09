@@ -152,6 +152,10 @@ char **icsh_parse_line(char *line){
 int icsh_cd(char **);
 int icsh_exit(char **);
 int icsh_pid(char **);
+int icsh_hist(char **);
+int icsh_histn(char **);
+int icsh_exec_line(char *);
+int icsh_exec_hist(char **);
 
 char *icsh_builtin_str[] = {
 	"cd",
