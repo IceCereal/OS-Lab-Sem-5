@@ -159,6 +159,7 @@ char *icsh_builtin_str[] = {
 	"pid",
 	"hist",
 	"histn",
+	"!histn"
 };
 
 int (*icsh_builtin_func[]) (char **) = {
@@ -166,7 +167,8 @@ int (*icsh_builtin_func[]) (char **) = {
 	&icsh_exit,
 	&icsh_pid,
 	&icsh_hist,
-	&icsh_histn
+	&icsh_histn,
+	&icsh_exec_hist
 };
 
 int icsh_num_builtin(){
@@ -188,14 +190,17 @@ int icsh_exit(char **args){
 	return 0;
 }
 
-int icsh_execute_command(char **args, char *line){
+int icsh_execute_command(char **args){
 	pid_t pid = fork();
 
 	if (pid == -1){
 		printf("ERROR!\n");
 	} else if (pid == 0){
-		if (execvp(args[0], args) == -1)
+		if (execvp(args[0], args) == -1){
 			printf("ERROR\n");
+			exit(1);
+		}
+		exit(1);
 	} else{
 		wait(NULL);
 	}
@@ -215,7 +220,7 @@ int icsh_execute_input(char **args, char *line){
 			return (*icsh_builtin_func[i])(args);
 	}
 
-	return icsh_execute_command(args, line);
+	return icsh_execute_command(args);
 }
 
 int icsh_pid(char **args){
@@ -285,8 +290,65 @@ int icsh_histn(char **args){
 		}
 
 		fclose(file_ptr_hist);
+	} else{
+		printf("histn: histn does not take any additional arguments\n");
+		printf("USAGE: histn line_number\n");
 	}
 
+	return 1;
+}
+
+int icsh_exec_line(char *line){
+	char **args_NewLine;
+
+	args_NewLine = icsh_parse_line(line);
+
+	icsh_execute_command(args_NewLine);
+
+	return 1;
+}
+
+int icsh_exec_hist(char **args){
+	int line_execute = atoi(args[1]);
+
+	if (args[2] == NULL){
+		/* Execute line number n */
+		FILE *file_ptr_hist = fopen(file_history, "r");
+
+		char *buffer;
+		size_t buffer_size;
+		ssize_t line_size;
+
+		int line_counter = 0;
+		int flag_FoundLine = 0;
+
+		line_size = getline(&buffer, &buffer_size, file_ptr_hist);
+
+		while (line_size >= 0){
+			line_counter++;
+
+			if (line_counter == line_execute){
+				flag_FoundLine = 1;
+				break;
+			}
+
+			line_size = getline(&buffer, &buffer_size,
+				file_ptr_hist);
+		}
+
+		if (flag_FoundLine){
+			icsh_exec_line(buffer);
+		} else {
+			printf("line_number provided is greater than total \
+			number of lines in history\n");
+			printf("USAGE: !histn line_number\n");
+		}
+
+		fclose(file_ptr_hist);
+	} else{
+		printf("histn: !histn does not take any additional arguments\n");
+		printf("USAGE: !histn line_number\n");
+	}
 	return 1;
 }
 
