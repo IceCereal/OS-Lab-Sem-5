@@ -56,6 +56,11 @@
 
 #define BUFSIZE 1024
 
+struct current_pids{
+	int pid;
+	struct current_pids *next;
+};
+
 /*
 disp_dir
 
@@ -121,6 +126,17 @@ input: *line
 returns: 1 (for the statusFlag (for main loop))
 */
 int icsh_execute_command(char **);
+
+/*
+insert_pid
+delete_pid
+
+Util functions for linked list [struct current_pids]
+input: int pid
+returns: 1 (for success)
+*/
+int insert_pid(int);
+int delete_pid(int);
 
 /*
 icsh_clean_up
