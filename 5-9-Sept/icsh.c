@@ -12,8 +12,8 @@
 
 #include "icsh.h"
 
-char home[BUFSIZE], file_pid_all[BUFSIZE], file_pid_current[BUFSIZE],
-	file_history[BUFSIZE];
+char home[BUFSIZE], file_pid_all[BUFSIZE], file_history[BUFSIZE];
+struct current_pids *head_pid;
 
 int main(int argc, char *argv[]){
 	char username[BUFSIZE];
@@ -26,15 +26,12 @@ int main(int argc, char *argv[]){
 	getcwd(home, BUFSIZE);
 
 	strcpy(file_pid_all, "");
-	strcpy(file_pid_current, "");
 	strcpy(file_history, "");
 
 	strcat(file_pid_all, home);
-	strcat(file_pid_current, home);
 	strcat(file_history, home);
 
 	strcat(file_pid_all, "/._icsh_pid_all");
-	strcat(file_pid_current, "/._icsh_pid_current");
 	strcat(file_history, "/._icsh_history");
 
 	char *inputLine;
@@ -42,12 +39,14 @@ int main(int argc, char *argv[]){
 	int statusFlag = 1;
 
 	FILE *file_ptr_pid_all = fopen("._icsh_pid_all", "w");
-	FILE *file_ptr_pid_cur = fopen("._icsh_pid_current", "w");
 	FILE *file_ptr_hist = fopen("._icsh_history", "w");
 
 	fclose(file_ptr_pid_all);
-	fclose(file_ptr_pid_cur);
 	fclose(file_ptr_hist);
+
+	head_pid = (struct current_pids *)malloc(sizeof(struct current_pids));
+	head_pid->pid = getpid();
+	head_pid->next = NULL;
 
 	do{
 		printf("%s@%s:~%s/ ", username, nodename, disp_dir());
@@ -60,6 +59,7 @@ int main(int argc, char *argv[]){
 
 	free(inputLine);
 	free(args);
+	free(head_pid);
 
 	printf("Cleaning up...\n");
 
@@ -206,6 +206,13 @@ int icsh_execute_command(char **args){
 		}
 		exit(1);
 	} else{
+		char pid_str[10];
+		snprintf(pid_str, 10, "%d\n", pid);
+
+		FILE *file_ptr_pid_all = fopen(file_pid_all, "a");
+		fprintf(file_ptr_pid_all, pid_str, strlen(pid_str));
+		fclose(file_ptr_pid_all);
+
 		wait(NULL);
 	}
 
@@ -227,11 +234,78 @@ int icsh_execute_input(char **args, char *line){
 	return icsh_execute_command(args);
 }
 
+int insert_pid(int pid){
+	struct current_pids *node = (struct current_pids *)malloc(
+		sizeof(struct current_pids));
+	struct current_pids *loop_node;
+
+	node->pid = pid;
+	node->next = NULL;
+
+	/* Go through everything */
+	loop_node = head_pid;
+
+	while (loop_node->next != NULL){
+		loop_node = loop_node->next;
+	}
+
+	loop_node->next = node;
+
+	return 1;
+}
+
+int delete_pid(int pid){
+	struct current_pids *loop_node;
+	struct current_pids *prev;
+
+	loop_node = head_pid;
+	prev = head_pid;
+
+	while(loop_node != NULL){
+
+		if (loop_node->pid == pid){
+			prev->next = loop_node->next;
+			free(loop_node);
+			break;
+		}
+
+		prev = loop_node;
+		loop_node = loop_node->next;
+	}
+
+	return 1;
+}
+
+
 int icsh_pid(char **args){
 	if (args[1] == NULL){
 		printf("%d\n", getpid());
 	} else if (strncmp(args[1], "current", strlen("current")) == 0){
-		// FILE *
+		struct current_pids *loop_node;
+
+		loop_node = head_pid;
+
+		while(loop_node != NULL){
+			printf("PID:\t%d\n", loop_node->pid);
+			loop_node = loop_node->next;
+		}
+	} else if (strncmp(args[1], "all", strlen("all")) == 0){
+		FILE *file_ptr_pidAll = fopen(file_pid_all, "r");
+
+		if (file_ptr_pidAll == NULL){
+			printf("couldn't open %s\n", file_pid_all);
+			return -1;
+		}
+
+		printf("  PID\n");
+
+		char pid[10];
+
+		while(fgets(pid, sizeof(pid), file_ptr_pidAll) != NULL){
+			printf("  %s", pid);
+		}
+
+		fclose(file_ptr_pidAll);
 	}
 
 	return 1;
@@ -358,8 +432,18 @@ int icsh_exec_hist(char **args){
 
 int icsh_clean_up(){
 	remove(file_pid_all);
-	remove(file_pid_current);
 	remove(file_history);
+
+	struct current_pids *loop_node;
+	struct current_pids *next;
+
+	loop_node = head_pid;
+
+	while(loop_node != NULL){
+		next = loop_node->next;
+		free(loop_node);
+		loop_node = next;
+	}
 
 	return 1;
 }
