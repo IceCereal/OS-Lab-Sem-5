@@ -9,19 +9,20 @@
 #include <sys/types.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #include "icsh.h"
 
 char home[BUFSIZE], file_pid_all[BUFSIZE], file_history[BUFSIZE];
+char username[BUFSIZE], *nodename;
 struct current_pids *head_pid;
 
 int main(int argc, char *argv[]){
-	char username[BUFSIZE];
 	getlogin_r(username, BUFSIZE);
 
 	struct utsname uname_data;
 	uname(&uname_data);
-	char *nodename = uname_data.nodename;
+	nodename = uname_data.nodename;
 
 	getcwd(home, BUFSIZE);
 
@@ -38,8 +39,8 @@ int main(int argc, char *argv[]){
 	char **args;
 	int statusFlag = 1;
 
-	FILE *file_ptr_pid_all = fopen("._icsh_pid_all", "w");
-	FILE *file_ptr_hist = fopen("._icsh_history", "w");
+	FILE *file_ptr_pid_all = fopen(file_pid_all, "w");
+	FILE *file_ptr_hist = fopen(file_history, "w");
 
 	fclose(file_ptr_pid_all);
 	fclose(file_ptr_hist);
@@ -47,6 +48,8 @@ int main(int argc, char *argv[]){
 	head_pid = (struct current_pids *)malloc(sizeof(struct current_pids));
 	head_pid->pid = getpid();
 	head_pid->next = NULL;
+
+	signal(SIGCHLD, sigchld_handler);
 
 	do{
 		printf("%s@%s:~%s/ ", username, nodename, disp_dir());
@@ -61,7 +64,6 @@ int main(int argc, char *argv[]){
 	free(args);
 	free(head_pid);
 
-	printf("Cleaning up...\n");
 
 	icsh_clean_up();
 
@@ -117,7 +119,7 @@ char **icsh_parse_line(char *line){
 
 	// Initial loop for figuring out the number of arguments and
 	// max_length(argument)
-	char* tok = strtok(lineTemp, " \n");
+	char* tok = strtok(lineTemp, " \t\n");
 	while(tok != NULL){
 		totalArgs++;
 
@@ -126,7 +128,7 @@ char **icsh_parse_line(char *line){
 		if (tempLen > max_argLen)
 			max_argLen = tempLen;
 
-		tok = strtok(NULL, " \n");
+		tok = strtok(NULL, " \t\n");
 	}
 
 	// Allocate space for the tokens
@@ -135,10 +137,10 @@ char **icsh_parse_line(char *line){
 		token[i] = (char *)malloc((max_argLen) * sizeof(char));
 
 	int argv_counter = 0;
-	tok = strtok(command, " \n");
+	tok = strtok(command, " \t\n");
 	while (tok != NULL){
 		strcpy(token[argv_counter++], tok);
-		tok = strtok(NULL, " \n");
+		tok = strtok(NULL, " \t\n");
 	}
 
 	token[argv_counter] = NULL;
@@ -195,6 +197,19 @@ int icsh_exit(char **args){
 }
 
 int icsh_execute_command(char **args){
+	// Check background
+	int background = 0, count = 0;
+
+	while (args[count] != NULL){
+		if ((strncmp(args[count], "&", strlen("&")) == 0) && (args[count + 1] == NULL)){
+			args[count] = NULL;
+			background = 1;
+			break;
+		}
+	
+		count++;
+	}
+
 	pid_t pid = fork();
 
 	if (pid == -1){
@@ -202,9 +217,9 @@ int icsh_execute_command(char **args){
 	} else if (pid == 0){
 		if (execvp(args[0], args) == -1){
 			printf("ERROR\n");
-			exit(1);
+			exit(0);
 		}
-		exit(1);
+		exit(0);
 	} else{
 		char pid_str[10];
 		snprintf(pid_str, 10, "%d\n", pid);
@@ -213,7 +228,11 @@ int icsh_execute_command(char **args){
 		fprintf(file_ptr_pid_all, pid_str, strlen(pid_str));
 		fclose(file_ptr_pid_all);
 
-		wait(NULL);
+		if (!background){
+			wait(NULL);
+		} else{
+			printf("  [BG: %d]\n", pid);
+		}
 	}
 
 	return 1;
@@ -430,7 +449,20 @@ int icsh_exec_hist(char **args){
 	return 1;
 }
 
+void sigchld_handler(int signum){
+	pid_t pid;
+
+	while ( (pid = waitpid(-1, NULL, WNOHANG)) != -1){
+		// delete_pid(pid);
+		printf("\n  [~BG %d]\n", pid);
+		printf("%s@%s:~%s/ ", username, nodename, disp_dir());
+	}
+	
+}
+
 int icsh_clean_up(){
+	printf("Cleaning up...\n");
+
 	remove(file_pid_all);
 	remove(file_history);
 
