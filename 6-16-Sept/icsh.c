@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
 
 #include "icsh.h"
 
@@ -35,12 +36,14 @@ int main(int argc, char *argv[]){
 	strcat(file_pid_all, "/._icsh_pid_all");
 	strcat(file_history, "/._icsh_history");
 
-	char *inputLine;
-	char **args;
 	int statusFlag = 1;
 
 	FILE *file_ptr_pid_all = fopen(file_pid_all, "w");
 	FILE *file_ptr_hist = fopen(file_history, "w");
+
+	char curpid_str[10];
+	snprintf(curpid_str, 10, "%d\n", getpid());
+	fprintf(file_ptr_pid_all, curpid_str, strlen(curpid_str));
 
 	fclose(file_ptr_pid_all);
 	fclose(file_ptr_hist);
@@ -54,15 +57,18 @@ int main(int argc, char *argv[]){
 	do{
 		printf("%s@%s:~%s/ ", username, nodename, disp_dir());
 
+		char *inputLine;
+		char **args;
+
 		inputLine = icsh_getline();
 		args = icsh_parse_line(inputLine);
 		statusFlag = icsh_execute_input(args, inputLine);
 
+		free(inputLine);
+		free(args);
+
 	} while(statusFlag);
 
-	free(inputLine);
-	free(args);
-	free(head_pid);
 
 
 	icsh_clean_up();
@@ -199,14 +205,34 @@ int icsh_exit(char **args){
 int icsh_execute_command(char **args){
 	// Check background
 	int background = 0, count = 0;
+	int redirect_input = 0, redirect_output = 0;
+	char fileNameIn[64], fileNameOut[64];
 
 	while (args[count] != NULL){
-		if ((strncmp(args[count], "&", strlen("&")) == 0) && (args[count + 1] == NULL)){
+		if ((strcmp(args[count], "&") == 0) && (args[count + 1] == NULL)){
 			args[count] = NULL;
 			background = 1;
 			break;
 		}
-	
+
+		if (strcmp(args[count], "<") == 0){
+			if (redirect_input || redirect_output){
+				printf("Parse error\n");
+				return 1;
+			}
+			strcpy(fileNameIn, args[count+1]);
+			args[count] = NULL;
+			redirect_input = 1;
+		} else if (strcmp(args[count], ">") == 0){
+			if (redirect_output){
+				printf("Parse error\n");
+				return 1;
+			}
+			strcpy(fileNameOut, args[count+1]);
+			args[count] = NULL;
+			redirect_output = 1;
+		}
+
 		count++;
 	}
 
@@ -215,6 +241,25 @@ int icsh_execute_command(char **args){
 	if (pid == -1){
 		printf("ERROR!\n");
 	} else if (pid == 0){
+		if (redirect_input){
+			int fd0;
+			if ((fd0 = open(fileNameIn, O_RDONLY, 0)) < 0){
+				printf("File doesn't exist\n");
+				exit(1);
+			}
+			dup2(fd0, STDIN_FILENO);
+			close(fd0);
+		}
+		if (redirect_output){
+			int fd1;
+			if ((fd1 = creat(fileNameOut, 0644)) < 0){
+				printf("File couldn't be created\n");
+				exit(1);
+			}
+			dup2(fd1, STDOUT_FILENO);
+			close(fd1);
+		}
+
 		if (execvp(args[0], args) == -1){
 			printf("ERROR\n");
 			exit(0);
@@ -452,11 +497,11 @@ int icsh_exec_hist(char **args){
 
 void sigchld_handler(int signum){
 	pid_t pid;
+	pid = waitpid(-1, NULL, WNOHANG);
 
-	if ( (pid = waitpid(-1, NULL, WNOHANG)) != -1){
+	if ((pid != -1) && (pid != 0)){
+		printf("  [~%d]\n", pid);
 		delete_pid(pid);
-		// printf("%s@%s:~%s/ ", username, nodename, disp_dir());
-		return;
 	}
 	return;
 }

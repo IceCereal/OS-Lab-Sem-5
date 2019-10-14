@@ -154,6 +154,9 @@ This is to remove the locally created files:
 
 returns: 1 on success
 */
+
+void sigchld_handler(int);
+
 int icsh_clean_up();
 
 #endif
