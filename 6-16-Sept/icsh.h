@@ -145,6 +145,13 @@ int insert_pid(int);
 int delete_pid(int);
 
 /*
+sigchld_handler
+
+This is the asynchronous SIGCHLD signal handler
+*/
+void sigchld_handler(int);
+
+/*
 icsh_clean_up
 
 This is to remove the locally created files:
@@ -154,9 +161,6 @@ This is to remove the locally created files:
 
 returns: 1 on success
 */
-
-void sigchld_handler(int);
-
 int icsh_clean_up();
 
 #endif
