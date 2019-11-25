@@ -63,9 +63,26 @@ struct PageTableEntry{
 	unsigned int supervisor : 1;	// User/Kernel
 };
 
+struct TLB_Entry{
+	unsigned int active : 1;	// Alive or Not
+	unsigned int vpn : 6;	// VPN
+	time_t time_used;	// Time of Last Access
+
+	unsigned int pfn : 14;	// Physical Frame Number
+	unsigned int offset : 10; // offset
+	unsigned int valid : 1;	// Valid
+	unsigned int present : 1;	// Present
+	unsigned int protect : 3;	// Protect 01R, 10W, 11X
+	unsigned int dirty : 1;	// Dirty
+	unsigned int supervisor : 1;	// User/Kernel
+};
+
 #define PAGES 64 // This comes from Calculations - (1)
+#define TLB_SIZE 32
 
 int initPageTable(struct PageTableEntry *PTE){
+	// This initializes the Page Table Entries
+	// When the process is created, the pages are created
 
 	srand(time(NULL));
 	PTE[0].pfn = rand() % 16384;
@@ -104,8 +121,8 @@ int initPageTable(struct PageTableEntry *PTE){
 	return 1;
 }
 
-int get_PFN(long int request){
-	int mask = 0x1C00; // [(111)-0000000000]
+int get_VPN(long int request){
+	int mask = 0xFC00; // [(111111)-0000000000]
 
 	int VPN = (request & mask) >> 10;
 
@@ -113,58 +130,179 @@ int get_PFN(long int request){
 }
 
 int get_Offset(long int request){
-	int mask = 0x3FF; // [(000)-1111111111]
+	int mask = 0x3FF; // [(000000)-1111111111]
 
 	return (request & mask);
 }
 
 struct PageTableEntry AccessMemory(long int request, struct PageTableEntry *PTE){
-	int PFN = get_PFN(request);
+	sleep(1); // delay in getting from memory
+
+	int VPN = get_VPN(request);
 
 	int offset = get_Offset(request);
 
-	PTE[PFN].offset = offset;
+	PTE[VPN].offset = offset;
 
-	return (PTE[PFN]);
+	return (PTE[VPN]);
 }
 
+int initTLB(struct TLB_Entry *TLBE){
+	// Make TLB's Cells Inactive
+	for (int i = 0; i < TLB_SIZE; ++i){
+		TLBE[i].active = 0;
+		TLBE[i].vpn = 0;
+	}
+
+	return 1;
+}
 
 int main(int argc, char *argv[]){
-	struct PageTableEntry PTE[PAGES]; // 8 pages per process
+	struct PageTableEntry PTE[PAGES];
+
+	struct TLB_Entry TLBE[TLB_SIZE];
 
 	initPageTable(PTE);
+	initTLB(TLBE);
 
-	for (int i = 0; i < PAGES; ++i){
-		printf("PAGE NUMBER %d\n", i);
-		printf("\tPFN %d\n", PTE[i].pfn);
-		printf("\tvalid %d\n", PTE[i].valid);
-		printf("\tpresent %d\n", PTE[i].present);
-		printf("\tprotect %d\n", PTE[i].protect);
-		printf("\tdirty %d\n", PTE[i].dirty);
-		printf("\tsupervisor %d\n", PTE[i].supervisor);
+	long int request; // This is what the program requests to see
+	int count = -1;
+
+	time_t time_1, time_2;
+
+	while (count < 100){
+		count += 1;
+		srand(time(NULL));
+
+		request = rand() % 65536; // Our Request can only be 16 bits long
+
+		int VPN = get_VPN(request);
+
+		printf("\n\niter %d | request %ld | VPN %d\nActive:\t", count, request, VPN);
+		for (int i = 0; i < TLB_SIZE; ++i){
+			printf("%d, ", TLBE[i].active);
+		}
+		printf("\nVPN:\t");
+		for (int i = 0; i < TLB_SIZE; ++i){
+			printf("%d, ", TLBE[i].vpn);
+		}
+		printf("\n");
+
+		int existsTLB = 0;
+
+		time_1 = time(0);
+
+		for (int i = 0; i < TLB_SIZE; ++i){
+			// Check whether this cell is active
+			if (TLBE[i].active){
+				// If the cell exists in The TLB
+				if (TLBE[i].vpn == VPN){
+					printf("HIT...\n");
+
+					TLBE[i].time_used = time(0);
+					existsTLB = 1;
+
+					if (!TLBE[i].valid){
+						printf("SEGMENTATION_FAULT\n");
+
+						time_2 = time(0);
+						printf("TIME TAKEN:\t%ld", time_2-time_1);
+
+						sleep(1);
+						break;
+					}
+
+					if (!TLBE[i].protect){
+						printf("PROTECTION_FAULT\n");
+
+						time_2 = time(0);
+						printf("TIME TAKEN:\t%ld", time_2-time_1);
+
+						sleep(1);
+						break;
+					}
+
+					printf("Physical Address at:\t%d\n", TLBE[i].pfn * 1024 + get_Offset(request));
+
+					time_2 = time(0);
+					printf("TIME TAKEN:\t%ld", time_2-time_1);
+
+					sleep(1);
+					break;
+				}
+			} else{
+				// The cell isn't active, i.e., directly goes to the TLB
+				printf("Making Active...\n");
+				existsTLB = 1;
+				struct PageTableEntry Req_PTE = AccessMemory(request, PTE);
+				TLBE[i].active = 1;
+				TLBE[i].vpn = VPN;
+				TLBE[i].time_used = time(0);
+
+				TLBE[i].pfn = Req_PTE.pfn;
+				TLBE[i].valid = Req_PTE.valid;
+				TLBE[i].present = Req_PTE.present;
+				TLBE[i].protect = Req_PTE.protect;
+				TLBE[i].dirty = Req_PTE.dirty;
+
+				printf("Physical Address at:\t%d\n", TLBE[i].pfn * 1024 + get_Offset(request));
+				
+				time_2 = time(0);
+				printf("TIME TAKEN:\t%ld", time_2-time_1);
+
+				break;
+			}
+		}
+
+		// It was a Miss. 
+		if (!existsTLB){
+			printf("Miss...\n");
+			struct PageTableEntry Req_PTE = AccessMemory(request, PTE);
+
+			// to find the Least Recently Used TLB-Entry
+
+			int LRU_TLB_Index = 0;
+			for (int i = 0; i < TLB_SIZE; ++i)
+				if (TLBE[i].time_used < TLBE[LRU_TLB_Index].time_used)
+					LRU_TLB_Index = i;
+
+			// Replace LRU with current
+
+			TLBE[LRU_TLB_Index].vpn = VPN;
+			TLBE[LRU_TLB_Index].time_used = time(0);
+
+			TLBE[LRU_TLB_Index].pfn = Req_PTE.pfn;
+			TLBE[LRU_TLB_Index].valid = Req_PTE.valid;
+			TLBE[LRU_TLB_Index].present = Req_PTE.present;
+			TLBE[LRU_TLB_Index].protect = Req_PTE.protect;
+			TLBE[LRU_TLB_Index].dirty = Req_PTE.dirty;
+
+			int physical_address = Req_PTE.pfn * 1024 + Req_PTE.offset;
+
+			if (!Req_PTE.valid){
+				printf("SEGMENTATION_FAULT\n");
+
+				time_2 = time(0);
+				printf("TIME TAKEN:\t%ld", time_2-time_1);
+
+				continue;
+			}
+
+			if (Req_PTE.protect < 1){
+				printf("PROTECTION_FAULT\n");
+
+				time_2 = time(0);
+				printf("TIME TAKEN:\t%ld", time_2-time_1);
+
+				continue;
+			}
+
+			printf("Physical Address:\t%d\n", physical_address);
+
+			time_2 = time(0);
+			printf("TIME TAKEN:\t%ld", time_2-time_1);
+		}
 	}
-
-	long int request;
-
-	// Enter Request HERE
-	printf("\nEnter an address (decimal) (16-bit):\t");
-	scanf("%ld", &request);
-
-	struct PageTableEntry Req_PTE = AccessMemory(request, PTE);
-
-	if ( (!Req_PTE.valid) || (Req_PTE.offset > 1024) ){
-		printf("\nSEGMENTATION_FAULT\n");
-		return -1;
-	}
-
-	if (Req_PTE.protect < 1){
-		printf("\nPROTECTION_FAULT\n");
-		return -1;
-	}
-
-	int physical_address = Req_PTE.pfn * 1024 + Req_PTE.offset;
-
-	printf("\nPhysical Address:\t%d\n", physical_address);
 
 	return 0;
 }
