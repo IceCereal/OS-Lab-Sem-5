@@ -53,21 +53,21 @@
 
 /*
 	Calculations:
-		16 bit addr space -> 2^13 byte addr space [For each process, given]
+		16 bit addr space [For each process, given]
 		
 		2^10 bytes per page (given)
 
-		2^13 / 2^10 = 2^3 = 8 pages per process -- (1)
+		2^16 / 2^10 = 2^6 = 64 pages per process -- (1)
 
 		----
 
 		16 * 2^20 bytes for RAM -> 2^24 bytes (given)
 
-		Since each process can take 2^13 bytes of space, we can have 2^24 / 2^13 processes = 2^11 processes.
+		Since each process can take 2^16 bytes of space, we can have 2^24 / 2^16 processes = 2^8 processes.
 
-		Each process can have 8 pages (from (1)).
+		Each process can have 64 pages (from (1)).
 		
-		Therefore, there are 2^11 * 8 pages = 2^14 pages in total -- (2)
+		Therefore, there are 2^8 * 64 pages = 2^14 pages in total -- (2)
 */
 
 #include <stdlib.h>
@@ -76,7 +76,7 @@
 #include <unistd.h>
 
 /*
-	This maps a 3-bit Virtual Page Number (requested by process) to a
+	This maps a 6-bit Virtual Page Number (requested by process) to a
 	14-bit Physical Frame Number. This PFN added to the offset will give
 	the Physical Address
 */
@@ -91,7 +91,7 @@ struct PageTableEntry{
 	unsigned int supervisor : 1;	// User/Kernel
 };
 
-#define PAGES 8 // This comes from Calculations - (1)
+#define PAGES 64 // This comes from Calculations - (1)
 
 int initPageTable(struct PageTableEntry *PTE){
 
@@ -112,9 +112,7 @@ int initPageTable(struct PageTableEntry *PTE){
 			PTE[i].pfn = rand() % 16384;
 
 			for (int j = 0; j < i; ++j){
-				int diff = (PTE[j].pfn > PTE[i].pfn) ? (PTE[j].pfn - PTE[i].pfn) : (PTE[i].pfn - PTE[j].pfn);
-
-				if (diff < 1024){
+				if (PTE[i].pfn == PTE[j].pfn){
 					validPFN_Flag = 0;
 					break;
 				} else{
@@ -134,7 +132,7 @@ int initPageTable(struct PageTableEntry *PTE){
 	return 1;
 }
 
-int get_PFN(int request){
+int get_PFN(long int request){
 	int mask = 0x1C00; // [(111)-0000000000]
 
 	int VPN = (request & mask) >> 10;
@@ -142,30 +140,22 @@ int get_PFN(int request){
 	return VPN;
 }
 
-int get_Offset(int request){
+int get_Offset(long int request){
 	int mask = 0x3FF; // [(000)-1111111111]
 
 	return (request & mask);
 }
 
-int AccessMemory(int request, struct PageTableEntry *PTE){
+struct PageTableEntry AccessMemory(long int request, struct PageTableEntry *PTE){
 	int PFN = get_PFN(request);
-
-	printf("PFN %d\n", PFN);
-	if (!PTE[PFN].valid){
-		printf("Segmentation Fault\n");
-		return -1;
-	}
-
-	if (PTE[PFN].protect <= 1){
-		printf("Protection Error\n");
-		return -1;
-	}
 
 	int offset = get_Offset(request);
 
-	return (PTE[PFN].pfn + offset);
+	PTE[PFN].offset = offset;
+
+	return (PTE[PFN]);
 }
+
 
 int main(int argc, char *argv[]){
 	struct PageTableEntry PTE[PAGES]; // 8 pages per process
@@ -182,12 +172,27 @@ int main(int argc, char *argv[]){
 		printf("\tsupervisor %d\n", PTE[i].supervisor);
 	}
 
-	int req;
+	long int request;
 
-	printf("\n\nEnter a decimal number:\t");
-	scanf("%d", &req);
+	// Enter Request HERE
+	printf("\nEnter an address (decimal) (16-bit):\t");
+	scanf("%ld", &request);
 
-	printf("\nPhysical Address:\t%x", AccessMemory(req, PTE));
+	struct PageTableEntry Req_PTE = AccessMemory(request, PTE);
+
+	if ( (!Req_PTE.valid) || (Req_PTE.offset > 1024) ){
+		printf("\nSEGMENTATION_FAULT\n");
+		return -1;
+	}
+
+	if (Req_PTE.protect < 1){
+		printf("\nPROTECTION_FAULT\n");
+		return -1;
+	}
+
+	int physical_address = Req_PTE.pfn * 1024 + Req_PTE.offset;
+
+	printf("\nPhysical Address:\t%d\n", physical_address);
 
 	return 0;
 }
