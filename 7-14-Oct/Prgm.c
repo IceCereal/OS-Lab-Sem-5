@@ -158,7 +158,7 @@ struct PageTableEntry AccessMemory(long int request, struct PageTableEntry *PTE)
 
 
 int main(int argc, char *argv[]){
-	struct PageTableEntry PTE[PAGES]; // 8 pages per process
+	struct PageTableEntry PTE[PAGES]; // 64 pages per process
 
 	initPageTable(PTE);
 
