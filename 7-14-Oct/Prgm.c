@@ -93,6 +93,40 @@ struct PageTableEntry{
 
 #define PAGES 64 // This comes from Calculations - (1)
 
+int bin2dec(unsigned long long int num){
+	int dec = 0;
+
+	int base = 1;
+
+	int temp = num;
+	while (temp) {
+		int last_digit = temp % 10;
+		temp = temp / 10;
+
+		dec += last_digit * base;
+
+		base = base * 2;
+	}
+
+	return dec;
+}
+
+long long dec2bin(int num){
+	long long binaryNumber = 0;
+
+	int remainder;
+	int i = 1;
+
+	while (num!=0){
+		remainder = num % 2;
+		num /= 2;
+		binaryNumber += remainder * i;
+		i *= 10;
+	}
+
+	return binaryNumber;
+}
+
 int initPageTable(struct PageTableEntry *PTE){
 
 	srand(time(NULL));
@@ -132,8 +166,8 @@ int initPageTable(struct PageTableEntry *PTE){
 	return 1;
 }
 
-int get_PFN(long int request){
-	int mask = 0x1C00; // [(111)-0000000000]
+int get_VPN(long int request){
+	int mask = 0xFC00; // [(111111)-0000000000]
 
 	int VPN = (request & mask) >> 10;
 
@@ -141,19 +175,19 @@ int get_PFN(long int request){
 }
 
 int get_Offset(long int request){
-	int mask = 0x3FF; // [(000)-1111111111]
+	int mask = 0x3FF; // [(000000)-1111111111]
 
 	return (request & mask);
 }
 
 struct PageTableEntry AccessMemory(long int request, struct PageTableEntry *PTE){
-	int PFN = get_PFN(request);
+	int VPN = get_VPN(request);
 
 	int offset = get_Offset(request);
 
-	PTE[PFN].offset = offset;
+	PTE[VPN].offset = offset;
 
-	return (PTE[PFN]);
+	return (PTE[VPN]);
 }
 
 
@@ -172,15 +206,15 @@ int main(int argc, char *argv[]){
 		printf("\tsupervisor %d\n", PTE[i].supervisor);
 	}
 
-	long int request;
+	int request;
 
 	// Enter Request HERE
-	printf("\nEnter an address (decimal) (16-bit):\t");
-	scanf("%ld", &request);
+	printf("\nEnter an address (decimal)(16-bit):\t");
+	scanf("%d", &request);
 
 	struct PageTableEntry Req_PTE = AccessMemory(request, PTE);
 
-	if ( (!Req_PTE.valid) || (Req_PTE.offset > 1024) ){
+	if (!Req_PTE.valid){
 		printf("\nSEGMENTATION_FAULT\n");
 		return -1;
 	}
