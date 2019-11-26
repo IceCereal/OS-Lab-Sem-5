@@ -63,4 +63,4 @@ To compile:<br>
 ```gcc -o icsh icsh.c -Wall```
 
 To run:<br>
-```./output```
+```./icsh```
