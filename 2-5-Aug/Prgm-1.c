@@ -32,6 +32,17 @@
 		The End.
 */
 
+/*
+	Note: There should be a `\n`(newline, not literally) at the end of the file:
+		FILE_NAME
+		ls -al
+		ping
+		whoami
+		
+		END
+	for the program to work
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

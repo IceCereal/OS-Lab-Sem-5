@@ -27,6 +27,17 @@
 			c. Avoid memory leaks and segmentation faults. Don't allocate memory where not required and as far as possible free memory.
 */
 
+/*
+	Note: There should be a `\n`(newline, not literally) at the end of the file:
+		FILE_NAME
+		ls -al
+		ping
+		whoami
+		
+		END
+	for the program to work
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -227,7 +238,8 @@ int disp_history(int mode){
 
 	if (mode == 0){
 		// HISTORY BRIEF
-		for (int i = 0; i < lineCount + 1; ++i){
+		for (int i = 0; i < lineCount; ++i){
+			printf("%d. ", i);
 			for (int j = 0; j < 40; ++j){
 				if (lines[i][j] == ' ')
 					break;
@@ -244,7 +256,7 @@ int disp_history(int mode){
 		for (int i = 0; i < lineCount + 1; ++i){
 			if (strncmp(lines[i], "\n", strlen("\n")) == 0)
 				break;
-			printf("%s", lines[i]);
+			printf("%d. %s", i, lines[i]);
 		}
 	}
 
@@ -326,6 +338,7 @@ int main(int argc, char *argv[]){
 		if (pid == 0){
 			/* This is the Child Process */
 			raise(SIGSTOP); // Wait for Parent to give signal to continue
+			printf("\nCHILD HAS STARTED");
 
 			char readBuffer[1024];
 
@@ -392,6 +405,7 @@ int main(int argc, char *argv[]){
 
 			/* This is the Parent Process */
 			waitpid(pid, NULL, WUNTRACED);
+			printf("PARENT HAS STARTED");
 
 			close(signal_sendPipe[0]); // Close reading
 			close(signal_ackPipe[1]); // Close writing

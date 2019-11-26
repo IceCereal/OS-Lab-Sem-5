@@ -69,8 +69,6 @@ int main(int argc, char *argv[]){
 
 	} while(statusFlag);
 
-
-
 	icsh_clean_up();
 
 	return 0;
@@ -204,7 +202,7 @@ int icsh_exit(char **args){
 
 int icsh_execute_command(char **args){
 	// Check background
-	int background = 0, count = 0;
+	int background = 0, count = 0, isPiped = 0;
 	int redirect_input = 0, redirect_output = 0;
 	char fileNameIn[64], fileNameOut[64];
 
@@ -233,7 +231,17 @@ int icsh_execute_command(char **args){
 			redirect_output = 1;
 		}
 
+		if (strcmp(args[count], "|") == 0)
+			isPiped++;
+
 		count++;
+	}
+
+	if (isPiped){
+		// If pipe exists in the command, execute it here and exit this function
+		// TODO: Finish This
+		// icsh_exec_pipe(redirect_input, redirect_output, args);
+		return 1;
 	}
 
 	pid_t pid = fork();
@@ -283,6 +291,39 @@ int icsh_execute_command(char **args){
 
 	return 1;
 
+}
+
+int icsh_exec_pipe(int redir_in, int redir_out, char **args){
+	int count = 0, pipecount = 0;
+
+	while (args[count] != NULL)
+		if (strcmp(args[count], "|") ==0)
+			pipecount++;
+
+	if (!pipecount)
+		return 1;
+
+	pipecount *= 2;
+	int pipefds[pipecount];
+
+	typedef struct cmd{
+		char **args;
+		struct cmd *next;
+	}cmd;
+
+	cmd *head;
+	cmd *node;
+
+	for (int i = 0; i < pipecount; ++i)
+		if (pipe(pipefds + (i*2)) < 0){
+			printf("Unable to create pipes\n");
+			return 1;
+		}
+
+	
+
+
+	return 1;
 }
 
 int icsh_execute_input(char **args, char *line){
